@@ -176,6 +176,32 @@ class TwitterBot(object):
 
         nextLastUpdate = self.lastUpdate
         for update in updates:
+            try:
+                # This part raises lots of exceptions which kill the bot
+                # (Unicode errors, etc.)
+                # Ignore any exceptions, as a band-aid.
+                crt = parsedate(update['created_at'])
+                if (crt > nextLastUpdate):
+                    text = (htmlentitydecode(
+                        update['text'].replace('\n', ' '))
+                        .encode('utf8', 'replace'))
+
+                    # Skip updates beginning with @
+                    # TODO This would be better if we only ignored messages
+                    #   to people who are not on our following list.
+                    if not text.startswith(b"@"):
+                        msg = "%s %s%s%s %s" %(
+                            get_prefix(),
+                            IRC_BOLD, update['user']['screen_name'],
+                            IRC_BOLD, text.decode('utf8'))
+                        self.privmsg_channels(msg)
+
+                    nextLastUpdate = crt
+            except Exception as e:
+                print("Exception while sending updates:", file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
+                pass # don't return as this one is likely to keep happening
+
             crt = parsedate(update['created_at'])
             if (crt > nextLastUpdate):
                 text = (htmlentitydecode(
