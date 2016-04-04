@@ -19,6 +19,8 @@ port: <irc_port>
 nick: <irc_nickname>
 channel: <irc_channels_to_join>
 prefixes: <prefix_type>
+modes: <modes to set (i.e. +ix)>
+autocmd: <command to send upon connect>
 
 [twitter]
 oauth_token_file: <oauth_token_filename>
@@ -31,6 +33,8 @@ oauth_token_file: <oauth_token_filename>
   The default token file is ~/.twitterbot_oauth.
 
   The default prefix type is 'cats'. You can also use 'none'.
+
+  autocmd and modes may be omitted.
 
 """
 
@@ -235,6 +239,14 @@ class TwitterBot(object):
         """
         args = evt.arguments()
         if (args and args[0] == '+i'):
+            try:
+                self.ircServer.send_raw(self.config.get('irc', 'autocmd'))
+            except:
+                pass # ignore errors, it's probably just not defined
+            try:
+                self.ircServer.send_raw("MODE %s %s" % (self.ircServer.get_nickname(), self.config.get('irc', 'modes')))
+            except:
+                pass # ignore errors again
             channels = self.config.get('irc', 'channel').split(',')
             for channel in channels:
                 self.ircServer.join(channel)
@@ -293,6 +305,14 @@ class TwitterBot(object):
             self.config.getint('irc', 'port'),
             self.config.get('irc', 'nick'))
         channels=self.config.get('irc', 'channel').split(',')
+        try:
+            self.ircServer.send_raw(self.config.get('irc', 'autocmd'))
+        except Exception as e:
+            pass # ignore errors, it's probably just not defined
+        try:
+            self.ircServer.send_raw("MODE %s %s" % (self.ircServer.get_nickname(), self.config.get('irc', 'modes')))
+        except Exception as e:
+            pass # ignore errors again
         for channel in channels:
             self.ircServer.join(channel)
 
